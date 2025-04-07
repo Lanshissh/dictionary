@@ -23,31 +23,31 @@
                     <p id="wordText">__</p>
                     <span id="phoneticText">_ _</span>
                 </div>
-                <i class="fas fa-volume-up" id="volumeIcon"></i>
+                <i class="fas fa-volume-up" id="volumeIcon" style="display: none;"></i>
             </li>
             <div class="content">
                 <li class="meaning">
                     <div class="details">
                         <p>Meaning</p>
-                        <span id="meaningText">___</span>
+                        <span id="meaningText"><i>No meaning loaded</i></span>
                     </div>
                 </li>
                 <li class="example">
                     <div class="details">
                         <p>Example</p>
-                        <span id="exampleText">___</span>
+                        <span id="exampleText"><i>No examples yet</i></span>
                     </div>
                 </li>
                 <li class="synonyms">
                     <div class="details">
                         <p>Synonyms</p>
-                        <div class="list" id="synonymsList"></div>
+                        <div class="list" id="synonymsList"><i>None</i></div>
                     </div>
                 </li>
                 <li class="antonyms">
                     <div class="details">
                         <p>Antonyms</p>
-                        <div class="list" id="antonymsList"></div>
+                        <div class="list" id="antonymsList"><i>None</i></div>
                     </div>
                 </li>
             </div>
@@ -76,17 +76,16 @@
                 wrapper.classList.add("active");
                 const wordData = result[0];
                 wordText.innerText = wordData.word;
-                phoneticText.innerText = wordData.phonetic || ""; // Display phonetic text if available
+                phoneticText.innerText = wordData.phonetic || ""; 
 
-                // Display meaning
                 meaningText.innerText = wordData.definition || "No definition available.";
 
-                // Clear previous synonyms, antonyms, and examples
+                // Clear previous
                 synonymsList.innerHTML = "";
                 antonymsList.innerHTML = "";
                 exampleText.innerHTML = "";
 
-                // Add synonyms
+                // Synonyms
                 if (wordData.synonyms) {
                     const synonyms = wordData.synonyms.split(',');
                     synonyms.forEach((synonym, index) => {
@@ -100,10 +99,11 @@
                     });
                     synonymsList.parentElement.style.display = "block";
                 } else {
-                    synonymsList.parentElement.style.display = "none";
+                    synonymsList.innerHTML = "<i>None</i>";
+                    synonymsList.parentElement.style.display = "block";
                 }
 
-                // Add antonyms
+                // Antonyms
                 if (wordData.antonyms) {
                     const antonyms = wordData.antonyms.split(',');
                     antonyms.forEach((antonym, index) => {
@@ -117,28 +117,30 @@
                     });
                     antonymsList.parentElement.style.display = "block";
                 } else {
-                    antonymsList.parentElement.style.display = "none";
+                    antonymsList.innerHTML = "<i>None</i>";
+                    antonymsList.parentElement.style.display = "block";
                 }
 
-                // Add examples
+                // Examples
                 if (wordData.examples) {
                     const examples = wordData.examples.split('|');
-                    examples.forEach((example) => {
+                    examples.forEach(example => {
                         const p = document.createElement("p");
                         p.innerText = example.trim();
                         exampleText.appendChild(p);
                     });
                     exampleText.parentElement.style.display = "block";
                 } else {
-                    exampleText.parentElement.style.display = "none";
+                    exampleText.innerHTML = "<i>No examples</i>";
+                    exampleText.parentElement.style.display = "block";
                 }
 
-                // Set up audio
+                // Audio
                 if (wordData.audio) {
-                    audio = new Audio(wordData.audio); // Create an Audio object
-                    volumeIcon.style.display = "block"; // Show the audio icon
+                    audio = new Audio("audio/" + wordData.audio);
+                    volumeIcon.style.display = "inline-block";
                 } else {
-                    volumeIcon.style.display = "none"; // Hide the audio icon if no audio is available
+                    volumeIcon.style.display = "none";
                 }
             }
         }
@@ -152,16 +154,19 @@
             wrapper.classList.remove("active");
             infoText.style.color = "#000";
             infoText.innerHTML = `Searching the meaning of <span>"${word}"</span>`;
-            fetch(`search.php?word=${word}`)
+            fetch(`search.php?word=${encodeURIComponent(word)}`)
                 .then(response => response.json())
-                .then(result => data(result, word))
+                .then(result => {
+                    console.log(result); // Debugging
+                    data(result, word);
+                })
                 .catch(() => {
                     infoText.innerHTML = `Can't find the meaning of <span>"${word}"</span>. Please, try to search for another word.`;
                 });
         }
 
         searchInput.addEventListener("keyup", e => {
-            let word = e.target.value.replace(/\s+/g, ' ');
+            let word = e.target.value.trim();
             if (e.key === "Enter" && word) {
                 fetchApi(word);
             }
@@ -175,11 +180,8 @@
             infoText.innerHTML = "Type any existing word and press enter to get meaning, example, synonyms, etc.";
         });
 
-        // Play audio when the volume icon is clicked
         volumeIcon.addEventListener("click", () => {
-            if (audio) {
-                audio.play(); // Play the audio
-            }
+            if (audio) audio.play();
         });
     </script>
 </body>

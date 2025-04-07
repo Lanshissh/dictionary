@@ -6,30 +6,36 @@ $username = "root";
 $password = "";
 $dbname = "dictionary_db";
 
-// Create connection
+// Connect to database
 $conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    die(json_encode([]));
 }
 
-$word = $_GET['word'];
+// Get searched word
+$word = $_GET['word'] ?? '';
 
-// Query to fetch word details
+if (empty($word)) {
+    echo json_encode([]);
+    exit;
+}
+
+// Main query: Fetch word info
 $sql = "
-    SELECT w.word, m.definition, 
-           GROUP_CONCAT(DISTINCT s.synonym) AS synonyms, 
-           GROUP_CONCAT(DISTINCT a.antonym) AS antonyms,
-           GROUP_CONCAT(DISTINCT e.example SEPARATOR '|') AS examples,
-           w.audio
+    SELECT 
+        w.word,
+        w.audio,
+        GROUP_CONCAT(DISTINCT m.definition SEPARATOR ' | ') AS definition,
+        GROUP_CONCAT(DISTINCT e.example SEPARATOR '|') AS examples,
+        GROUP_CONCAT(DISTINCT s.synonym) AS synonyms,
+        GROUP_CONCAT(DISTINCT a.antonym) AS antonyms
     FROM words w
     LEFT JOIN meanings m ON w.id = m.word_id
     LEFT JOIN examples e ON m.id = e.meaning_id
     LEFT JOIN synonyms s ON w.id = s.word_id
     LEFT JOIN antonyms a ON w.id = a.word_id
     WHERE w.word = ?
-    GROUP BY w.id, m.id
+    GROUP BY w.id
 ";
 
 $stmt = $conn->prepare($sql);
@@ -38,12 +44,19 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 $data = [];
-while ($row = $result->fetch_assoc()) {
-    $data[] = $row;
+if ($row = $result->fetch_assoc()) {
+    $data[] = [
+        "word" => $row["word"],
+        "phonetic" => "", // Optional: add phonetic if available
+        "definition" => $row["definition"],
+        "examples" => $row["examples"],
+        "synonyms" => $row["synonyms"],
+        "antonyms" => $row["antonyms"],
+        "audio" => $row["audio"]
+    ];
 }
 
 echo json_encode($data);
 
 $stmt->close();
 $conn->close();
-?>
